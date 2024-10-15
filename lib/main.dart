@@ -1,9 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_dev/form.dart';
+import 'package:admin_terminal/form.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 
 void main() {
   runApp(const MyApp());
@@ -19,11 +20,11 @@ class MyApp extends StatelessWidget {
       title: 'Script Runner',
       theme: ThemeData.dark().copyWith(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.blue,
+          seedColor: Colors.purple,
           brightness: Brightness.dark,
         ),
       ),
-      home: const MyHomePage(title: 'Demo Home'),
+      home: const MyHomePage(title: 'Admin Terminal'),
     );
   }
 }
@@ -38,11 +39,10 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  // final String ldapFilePath = './ldap.txt'; // Replace with your path
   final String loginUrl = 'https://netaccess.iitm.ac.in/account/login';
-  final String loginUrl2 = 'https://netaccess.iitm.ac.in/account/index';
   final String approveUrl = 'https://netaccess.iitm.ac.in/account/approve';
-  final int defaultDuration = 1; // Default duration in case of failure
+  final List<int> checkpoints = [0, 0, 0];
+  String time = '';
 
   @override
   void initState() {
@@ -52,18 +52,17 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> _runNetworkScript() async {
     try {
-      // final ldapLines = await File(ldapFilePath).readAsLines();
-      // if (ldapLines.length < 2) {
-      //   throw Exception('LDAP file must contain at least two lines.');
-      // }
+      setState(() {
+        checkpoints.fillRange(0, checkpoints.length, 0);
+      });
 
-      // final username = ldapLines[0].trim();
-      // final password = ldapLines[1].trim();
-      // const username = 'me21b065';
-      // const password = 'M}k&2hX@y93';
       List<String> credentials = await _getCredentials();
       final username = credentials[0];
       final password = credentials[1];
+
+      if (username == '' || password == '') {
+        throw Exception('No credentials present!!!');
+      }
 
       final loginResponse = await http.get(
         Uri.parse(loginUrl),
@@ -72,8 +71,15 @@ class _MyHomePageState extends State<MyHomePage> {
         },
       );
       if (loginResponse.statusCode != 200) {
+        setState(() {
+          checkpoints[0] = 2;
+        });
         throw Exception('Failed to get login cookies.');
       }
+      setState(() {
+        checkpoints[0] = 1;
+      });
+
       final cookies = loginResponse.headers["set-cookie"];
       final phpSessId = _extractPhpSessId(cookies);
 
@@ -89,7 +95,15 @@ class _MyHomePageState extends State<MyHomePage> {
           'submit': '',
         },
       );
-      if (loginResponse2.statusCode != 302) throw Exception('Login failed.');
+      if (loginResponse2.statusCode != 302) {
+        setState(() {
+          checkpoints[1] = 2;
+        });
+        throw Exception('Login failed.');
+      }
+      setState(() {
+        checkpoints[1] = 1;
+      });
 
       const duration = "2";
 
@@ -105,10 +119,20 @@ class _MyHomePageState extends State<MyHomePage> {
         },
       );
       if (approveResponse.statusCode != 302) {
+        setState(() {
+          checkpoints[2] = 2;
+        });
         throw Exception('Failed to approve duration.');
       }
 
+      setState(() {
+        time = DateFormat('hh:mm:ss').format(DateTime.now());
+        checkpoints[2] = 1;
+      });
     } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
       print('Error: $e');
     }
   }
@@ -145,14 +169,23 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text('Running Script...'),
+            ElevatedButton(
+              onPressed: _runNetworkScript,
+              child: const Text('Let there be LIGHT...'),
+            ),
             const SizedBox(
               height: 5,
             ),
-            ElevatedButton(
-              onPressed: _runNetworkScript,
-              child: const Text('Repeat'),
-            )
+            if (checkpoints[0] == 1) const Text('Received SessionID'),
+            if (checkpoints[1] == 1) const Text('Login Successful'),
+            if (checkpoints[2] == 1)
+              Text(
+                'Netaccessed Successfully at $time',
+                style: const TextStyle(color: Colors.green),
+              ),
+            const SizedBox(
+              height: 5,
+            ),
           ],
         ),
       ),

@@ -33,6 +33,7 @@ class _CredentialsFormState extends State<CredentialsForm> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Credentials stored securely!')),
     );
+    Navigator.of(context).pop();
   }
 
   Future<void> _getCredentials() async {
@@ -40,7 +41,7 @@ class _CredentialsFormState extends State<CredentialsForm> {
     String? password = await _secureStorage.read(key: 'password');
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Stored Username: $username\nStored Password: $password')),
+      SnackBar(content: Text('Stored Username: $username\nStored Password: ${password?[0]}***${password?[password.length-1]}')),
     );
   }
 

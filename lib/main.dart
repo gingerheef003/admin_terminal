@@ -1,3 +1,4 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:admin_terminal/form.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -62,6 +63,12 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> _runNetworkScript() async {
     try {
+      final List<ConnectivityResult> connectivityResult = await Connectivity().checkConnectivity();
+
+      if(!connectivityResult.contains(ConnectivityResult.wifi)) {
+        throw Exception('Connect to wifi');
+      }
+
       setState(() {
         checkpoints.fillRange(0, checkpoints.length, 0);
       });
@@ -143,7 +150,6 @@ class _MyHomePageState extends State<MyHomePage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString())),
       );
-      print('Error: $e');
     }
   }
 

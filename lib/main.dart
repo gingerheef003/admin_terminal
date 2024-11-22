@@ -1,10 +1,9 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:admin_terminal/form.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:quick_actions/quick_actions.dart';
 
 void main() {
   runApp(const MyApp());
@@ -20,7 +19,7 @@ class MyApp extends StatelessWidget {
       title: 'Script Runner',
       theme: ThemeData.dark().copyWith(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.purple,
+          seedColor: Colors.deepOrange,
           brightness: Brightness.dark,
         ),
       ),
@@ -43,11 +42,22 @@ class _MyHomePageState extends State<MyHomePage> {
   final String approveUrl = 'https://netaccess.iitm.ac.in/account/approve';
   final List<int> checkpoints = [0, 0, 0];
   String time = '';
+  String shortcut = 'none';
 
   @override
   void initState() {
     super.initState();
-    _runNetworkScript();
+
+    const QuickActions quickActions = QuickActions();
+    quickActions.initialize((String shortcutType) {
+      if(shortcutType == 'netaccess') {
+        Future.microtask(() => _runNetworkScript());
+      }
+    });
+
+    quickActions.setShortcutItems(<ShortcutItem>[
+      const ShortcutItem(type: 'netaccess', localizedTitle: 'NetAccess', icon: 'ic_wifi')
+    ]);
   }
 
   Future<void> _runNetworkScript() async {
